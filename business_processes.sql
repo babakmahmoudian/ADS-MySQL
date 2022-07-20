@@ -54,8 +54,7 @@ CREATE PROCEDURE printPortsTotalStay(in_begin_date DATE, in_end_date DATE)
 BEGIN
     SELECT ports.name, SUM(visits.length_of_stay)
         FROM ports JOIN visits USING (port_id)
-        WHERE visits.date_of_arrival >= in_begin_date AND
-            visits.date_of_arrival <= in_end_date
+        WHERE visits.date_of_arrival BETWEEN in_begin_date AND in_end_date
         GROUP BY ports.name;
 END//
 
@@ -66,34 +65,28 @@ DELIMITER ;
 DELIMITER //
 
 -- Business Process 3: Getting a list of yachts visiting their home ports between two dates
-CREATE PROCEDURE printYachtsVisitingHome()
+CREATE PROCEDURE printYachtsVisitingHome(in_begin_date DATE, in_end_date DATE)
 BEGIN
     SELECT yachts.name as "yacht_name", visits.date_of_arrival, visits.length_of_stay
         FROM yachts JOIN charters USING (yacht_id)
             JOIN visits USING (charter_id)
         WHERE yachts.homeport_id = visits.port_id
-            AND visits.date_of_arrival BETWEEN '2018-07-01' AND '2018-07-31';
+            AND visits.date_of_arrival BETWEEN in_begin_date AND in_end_date;
 END//
 
 -- Reverting the delimiter back to ;
 DELIMITER ;
 
--- Changing the MySQL's delimiter from ; to //
-DELIMITER //
-
 -- Business Process 4: Retrieving the list of ports visited by a given customer
-CREATE PROCEDURE printPortsByCustomer(in_name VARCHAR(50))
-BEGIN
-    SELECT ports.name as "port_name", visits.date_of_arrival, visits.length_of_stay
+CREATE VIEW ports_visited_by_customers AS
+    SELECT customers.name AS customer_name,
+           ports.name AS port,
+           visits.date_of_arrival,
+           visits.length_of_stay
         FROM customers JOIN charters USING (customer_id)
             JOIN visits USING (charter_id)
             JOIN ports USING (port_id)
-        WHERE customers.name = in_name
         ORDER BY visits.date_of_arrival;
-END//
-
--- Reverting the delimiter back to ;
-DELIMITER ;
 
 -- Changing the MySQL's delimiter from ; to //
 DELIMITER //
@@ -101,27 +94,50 @@ DELIMITER //
 /*  Business Process 5: Temporarily removing a yacht and getting a list of inactive yachts
         * in_name: the name of the yacht to deactivate
     */
-CREATE PROCEDURE setYachtInactive(in_name VARCHAR(50))
+-- This procedure sets a yacht as inactive 
+CREATE PROCEDURE inactivateYacht(in_name VARCHAR(50))
 BEGIN
     -- Deactivating the given yacht
     UPDATE yachts SET inactive_since = (SELECT CURDATE()) WHERE name = in_name;
+END//
 
-    -- Getting the list of the inactive yachts
-    SELECT name, inactive_since FROM yachts WHERE inactive_since IS NOT NULL;
+-- This procedure sets a yacht as active 
+CREATE PROCEDURE activateYacht(in_name VARCHAR(50))
+BEGIN
+    -- Activating the given yacht
+    UPDATE yachts SET inactive_since = NULL WHERE name = in_name;
 END//
 
 -- Reverting the delimiter back to ;
 DELIMITER ;
 
-CALL addCustomerAndCharter(
-    "D18-23", "Marlon Brando", "American", "Don.Corleone@gmail.com", "+15417543010",
-    "CH-046", "2022-07-09", 11
-    );
+-- This view retrieves a list of all the inactive yachts
+CREATE VIEW inactive_yachts as
+    SELECT * FROM yachts WHERE inactive_since IS NOT NULL;
 
-CALL printPortsTotalStay("2018-07-11", "2018-07-21");
+/*  Calling Business Processes:
 
-CALL printYachtsVisitingHome();
+    Business Process 1:
+    CALL addCustomerAndCharter(
+        "D18-23", "Marlon Brando", "American", "Don.Corleone@gmail.com", "+15417543010",
+        "CH-046", "2022-07-09", 11
+        );
 
-CALL printPortsByCustomer("John Wayne");
+    Business Process 2:
+    CALL printPortsTotalStay("2018-07-11", "2018-07-21");
 
-CALL setYachtInactive("Serenity");
+    Business Process 3:
+    CALL printYachtsVisitingHome("2018-07-11", "2018-07-21");
+
+    Business Process 4:
+    SELECT port, date_of_arrival, length_of_stay FROM ports_visited_by_customers
+        WHERE customer_name = "John Wayne";
+
+    Business Process 5:
+    CALL inactivateYacht("Serenity");
+
+    SELECT * FROM inactive_yachts;
+
+    CALL activateYacht("Serenity");
+
+    SELECT * FROM inactive_yachts;
