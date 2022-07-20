@@ -46,36 +46,20 @@ END//
 -- Reverting the delimiter back to ;
 DELIMITER ;
     
--- Changing the MySQL's delimiter from ; to //
-DELIMITER //
-
 -- Business Process 2: Getting the total length of stay at each port in a given interval
-CREATE PROCEDURE printPortsTotalStay(in_begin_date DATE, in_end_date DATE)
-BEGIN
-    SELECT ports.name, SUM(visits.length_of_stay)
+CREATE VIEW ports_total_stays AS
+    SELECT ports.name AS port,
+           visits.date_of_arrival,
+           SUM(visits.length_of_stay) AS total_length_stay
         FROM ports JOIN visits USING (port_id)
-        WHERE visits.date_of_arrival BETWEEN in_begin_date AND in_end_date
-        GROUP BY ports.name;
-END//
-
--- Reverting the delimiter back to ;
-DELIMITER ;
-
--- Changing the MySQL's delimiter from ; to //
-DELIMITER //
+        GROUP BY ports.name, visits.date_of_arrival;
 
 -- Business Process 3: Getting a list of yachts visiting their home ports between two dates
-CREATE PROCEDURE printYachtsVisitingHome(in_begin_date DATE, in_end_date DATE)
-BEGIN
+CREATE VIEW yachts_visiting_home AS
     SELECT yachts.name as "yacht_name", visits.date_of_arrival, visits.length_of_stay
         FROM yachts JOIN charters USING (yacht_id)
             JOIN visits USING (charter_id)
-        WHERE yachts.homeport_id = visits.port_id
-            AND visits.date_of_arrival BETWEEN in_begin_date AND in_end_date;
-END//
-
--- Reverting the delimiter back to ;
-DELIMITER ;
+        WHERE yachts.homeport_id = visits.port_id;
 
 -- Business Process 4: Retrieving the list of ports visited by a given customer
 CREATE VIEW ports_visited_by_customers AS
@@ -124,10 +108,10 @@ CREATE VIEW inactive_yachts as
         );
 
     Business Process 2:
-    CALL printPortsTotalStay("2018-07-11", "2018-07-21");
-
+    SELECT * FROM ports_total_stays WHERE date_of_arrival BETWEEN "2018-07-11" AND "2018-07-21";
+    
     Business Process 3:
-    CALL printYachtsVisitingHome("2018-07-11", "2018-07-21");
+    SELECT * FROM yachts_visiting_home WHERE date_of_arrival BETWEEN "2018-07-11" AND "2018-07-21";
 
     Business Process 4:
     SELECT port, date_of_arrival, length_of_stay FROM ports_visited_by_customers
@@ -141,3 +125,4 @@ CREATE VIEW inactive_yachts as
     CALL activateYacht("Serenity");
 
     SELECT * FROM inactive_yachts;
+    */
