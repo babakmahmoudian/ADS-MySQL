@@ -2,15 +2,18 @@
         1. Creating a new empty database in case it does not already exist
         2. Activating the database
     */
--- #TODO: Remove the following line in final draft
-DROP DATABASE IF EXISTS ads_db;
+
 CREATE DATABASE IF NOT EXISTS ads_db;
 USE ads_db
 
-/*  Creating the CustomerNationalities table:
-        * nationality_id: a unique auto-incremental identifier serving as the
-          table's PK
-        * nationality: lists all the nationalities of each and every customer.
+-- Disabling the foreign key constraints
+SET FOREIGN_KEY_CHECKS=0;
+
+/*  Creating the customers_nationalities table:
+        * nationality_id: a unique auto-incremental identifier serving
+          as the table's PK
+        * nationality: lists all the nationalities of each and every
+          customer.
     */
 CREATE TABLE IF NOT EXISTS customer_nationalities (
     nationality_id TINYINT UNSIGNED AUTO_INCREMENT,
@@ -18,12 +21,12 @@ CREATE TABLE IF NOT EXISTS customer_nationalities (
     PRIMARY KEY (nationality_id)
 );
 
-/*  Creating the Customers table:
-        * customer_id: a unique identifier which acts as the table's PK and has
-          the form of D##-###
+/*  Creating the customers table:
+        * customer_id: a unique identifier which acts as the table's
+          PK and has the form of D##-###
         * name: the customer's name
-        * nationality: a foreign key referencing to customer_nationalities table
-          denoting each customer's nationality.
+        * nationality: a foreign key referencing to customer_nationalities
+          table denoting each customer's nationality.
         * email: the customer's email address
         * phoneno: the phone no. of the customer
     */
@@ -36,15 +39,17 @@ CREATE TABLE IF NOT EXISTS customers (
     PRIMARY KEY (customer_id),
     FOREIGN KEY (nationality_id) REFERENCES customer_nationalities(nationality_id)
         ON DELETE NO ACTION
-        ON UPDATE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT CHECK (NOT(email IS NULL and phoneno IS NULL))
 );
 
-/*  Creating the Ports table:
+/*  Creating the ports table:
         * port_id: a unique incremental identifier as the table's PK
         * name: the name of the port
         * email: the email address of the port
         * phoneno: the phone number of the port
-        * docking places: the total number of docking places available on the port
+        * docking places: the total number of docking places available
+          on the port
     */
 CREATE TABLE IF NOT EXISTS ports (
     port_id TINYINT UNSIGNED AUTO_INCREMENT,
@@ -52,11 +57,13 @@ CREATE TABLE IF NOT EXISTS ports (
     email VARCHAR(255),
     phoneno VARCHAR(16),
     docking_places TINYINT UNSIGNED NOT NULL,
-    PRIMARY KEY (port_id)
+    PRIMARY KEY (port_id),
+    CONSTRAINT CHECK (NOT(email IS NULL and phoneno IS NULL))
 );
 
-/*  Creating the YachtTypeModels table:
-        * typemodel_id: the PK of the table which is a unique auto-autoincremental number
+/*  Creating the yacht_typemodels table:
+        * typemodel_id: the PK of the table which is a unique
+          auto-autoincremental number
         * type: the type of the yacht
         * model: the model of the yacht
     */
@@ -64,17 +71,21 @@ CREATE TABLE IF NOT EXISTS yacht_typemodels (
     typemodel_id TINYINT UNSIGNED AUTO_INCREMENT,
     type VARCHAR(15) NOT NULL,
     model VARCHAR(20) NOT NULL,
-    PRIMARY KEY (typemodel_id)
+    PRIMARY KEY (typemodel_id),
+    UNIQUE (type, model)
 );
 
-/*  Creating the Yachts table:
+/*  Creating the yachts table:
         * yacht_id: a unique auto-incremental number as the table's PK
         * name: the name of the yacht
-        * typemodel_id: FK referencing a type/model pair in yacht_typemodels table
-        * homeport_id: yacht's home port; FK referencing a row in the ports table.
+        * typemodel_id: FK referencing a type/model pair in
+          yacht_typemodels table
+        * homeport_id: yacht's home port; FK referencing a row in the
+          ports table.
         * berths: the total number of berths that the yacht contains
         * cost: the total cost of renting the yacht per hour
-        * inactive_since: the date that the yacht became inactive or null (active)
+        * inactive_since: the date that the yacht became inactive or
+          null (active)
     */
 CREATE TABLE IF NOT EXISTS yachts (
     yacht_id TINYINT UNSIGNED AUTO_INCREMENT,
@@ -93,10 +104,11 @@ CREATE TABLE IF NOT EXISTS yachts (
         ON UPDATE CASCADE
 );
 
-/*  Creating the Charters table
+/*  Creating the charters table
         * charter_id: The unique ID of each charter in the form of CH-###
         * customer_id: FK referencing a customer in the customers table
-        * yacht_id: ID of the booked yacht; FK referencing a yacht in yachts table
+        * yacht_id: ID of the booked yacht; FK referencing a yacht in
+          yachts table
         * start_date: the starting date of the charter
         * duration: number of the days that the charter lasts
     */
@@ -115,11 +127,14 @@ CREATE TABLE IF NOT EXISTS charters (
         ON UPDATE CASCADE
 );
 
-/*  Creating the Visits table:
-        * visit_id: uniquely identifies each visit in the form of a V### code
-        * charter_id: FK referencing a specific charter that the visit belongs to
+/*  Creating the visits table:
+        * visit_id: uniquely identifies each visit in the form of
+          a V### code
+        * charter_id: FK referencing a specific charter that the
+          visit belongs to
         * port_id: FK referencing the port that the visit is headed to
-        * date_of_arrival: the date in which the visit reaches the destined port
+        * date_of_arrival: the date in which the visit reaches the
+          destined port
         * length_of_stay: the period of the stay at the port (in days)
     */
 CREATE TABLE IF NOT EXISTS visits (
@@ -136,3 +151,6 @@ CREATE TABLE IF NOT EXISTS visits (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
+-- Reenabling the foreign key constraints
+SET FOREIGN_KEY_CHECKS=1;

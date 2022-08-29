@@ -1,3 +1,5 @@
+drop database if exists ads_db;
+
 -- Creating the DB and the tables
 source ./create_tables.sql
 
